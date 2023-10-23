@@ -27,7 +27,7 @@ def get_text_chunks(text):
 
 
 def get_vectorstore(text_chunks, embedding_model=None):
-    if embedding_model is None:
+    if embedding_model is None or embedding_model == "openai":
         embeddings = OpenAIEmbeddings()
     elif embedding_model.startswith("huggingface"):
         embeddings = HuggingFaceInstructEmbeddings(
@@ -43,7 +43,7 @@ def get_conversation_chain(vectorstore, llm_model=None):
         # gpt-3.5-turbo by default
         llm = ChatOpenAI()
     elif llm_model.startswith("openai:"):
-        llm = ChatOpenAI(llm_model.replace("openai:", ""))
+        llm = ChatOpenAI(model_name=llm_model.replace("openai:", ""))
     elif llm_model.startswith("huggingface:"):
         llm = HuggingFaceHub(
             repo_id="google/flan-t5-xxl",
