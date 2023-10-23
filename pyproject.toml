@@ -21,6 +21,7 @@ chromadb = "0.4.14"
 unstructured = "0.10.25"
 huggingface-hub = "^0.18.0"
 pypdf2 = "^3.0.1"
+pymupdf = "^1.23.5"
 
 
 
