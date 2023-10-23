@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "paper-ai-summarizer"
+version = "0.1.0"
+description = ""
+authors = ["sapphire008 <cui23327@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11.6"
+openai = "0.28.1"
+langchain = "0.0.320"
+streamlit = "1.27.2"
+numpy = "1.26.1"
+pandas = "2.1.1"
+pypdf = "3.16.4"
+faiss-cpu = "1.7.4"
+llama-index = "0.8.48"
+spyder = "5.4.5"
+dynaconf = "3.2.3"
+chromadb = "0.4.14"
+unstructured = "0.10.25"
+huggingface-hub = "^0.18.0"
+pypdf2 = "^3.0.1"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
