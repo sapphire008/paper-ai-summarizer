@@ -103,7 +103,6 @@ def get_conversation_chain(vectorstore, llm_model=None):
         memory=memory,
         combine_docs_chain=doc_chain,
         question_generator=question_generator,
-        tags=["constructed_chain"],
     )
     return conversation_chain
 
