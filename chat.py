@@ -7,6 +7,18 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.llms import HuggingFaceHub
+from langchain.chains.llm import LLMChain
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.chains.question_answering import load_qa_chain
+from langchain.chains.conversational_retrieval.prompts import (
+    CONDENSE_QUESTION_PROMPT,
+    QA_PROMPT,
+)
+from langchain.schema import LLMResult
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.callbacks.streaming_stdout_final_only import (
+    FinalStreamingStdOutCallbackHandler,
+)
 
 
 def get_pdf_text(pdf_docs):
@@ -41,20 +53,57 @@ def get_vectorstore(text_chunks, embedding_model=None):
 def get_conversation_chain(vectorstore, llm_model=None):
     if llm_model is None:
         # gpt-3.5-turbo by default
-        llm = ChatOpenAI()
+        llm = ChatOpenAI(metadata={"name": "question_generator"})
+        streaming_llm = ChatOpenAI(
+            streaming=True, metadata={"name": "answer_generator"}
+        )
     elif llm_model.startswith("openai:"):
-        llm = ChatOpenAI(model_name=llm_model.replace("openai:", ""))
+        model_name = llm_model.replace("openai:", "")
+        llm = ChatOpenAI(metadata={"name": "question_generator"})
+        streaming_llm = ChatOpenAI(
+            model_name=model_name,
+            streaming=True,
+            metadata={"name": "answer_generator"},
+        )
     elif llm_model.startswith("huggingface:"):
+        model_kwargs = {
+            "temperature": 0.5,
+            "max_length": 512,
+        }
         llm = HuggingFaceHub(
             repo_id="google/flan-t5-xxl",
-            model_kwargs={"temperature": 0.5, "max_length": 512},
+            metadata={"name": "question_generator"},
+            model_kwargs=model_kwargs,
         )
+        streaming_llm = HuggingFaceHub(
+            repo_id="google/flan-t5-xxl",
+            metadata={"name": "answer_generator"},
+            model_kwargs=model_kwargs
+            | {
+                "stream": True,
+            },
+        )
+    question_generator = LLMChain(
+        llm=llm, prompt=CONDENSE_QUESTION_PROMPT, tags=["rephrased_question"]
+    )
+    # Streaming doc chain to combine the reponses
+    doc_chain = load_qa_chain(
+        streaming_llm,
+        chain_type="stuff",
+        prompt=QA_PROMPT,
+        tags=["generated_answer"],
+    )
 
+    # Memory to store the chat history
     memory = ConversationBufferMemory(
         memory_key="chat_history", return_messages=True
     )
-    conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm, retriever=vectorstore.as_retriever(), memory=memory
+    conversation_chain = ConversationalRetrievalChain(
+        retriever=vectorstore.as_retriever(),
+        memory=memory,
+        combine_docs_chain=doc_chain,
+        question_generator=question_generator,
+        tags=["constructed_chain"],
     )
     return conversation_chain
 
@@ -75,3 +124,25 @@ def initialize_conversation(pdf_docs, settings={}):
     return get_conversation_chain(
         vectorstore, llm_model=settings.get("LLM_MODEL")
     )
+
+
+class StreamHandler(BaseCallbackHandler):
+    def __init__(self, container, initial_text=""):
+        self.container = container
+        self.text = initial_text
+        self.llm_name = ""
+
+    def on_llm_start(self, serialized, inputs, **kwargs):
+        self.llm_name = kwargs["metadata"]["name"]
+        if self.llm_name != "answer_generator":
+            self.container.markdown("Thinking ...")
+
+    def on_llm_new_token(self, token: str, **kwargs):
+        # Only stream the answer generator
+        if self.llm_name == "answer_generator":
+            self.text += token
+            self.container.markdown(self.text + "▌")
+
+    def on_llm_end(self, response: LLMResult, **kwargs) -> None:
+        """Run when LLM ends running."""
+        self.container.markdown(self.text)
