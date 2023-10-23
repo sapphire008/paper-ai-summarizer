@@ -66,17 +66,18 @@ def get_conversation_chain(vectorstore, llm_model=None):
             metadata={"name": "answer_generator"},
         )
     elif llm_model.startswith("huggingface:"):
+        repo_id = "google/flan-t5-xxl"
         model_kwargs = {
             "temperature": 0.5,
             "max_length": 512,
         }
         llm = HuggingFaceHub(
-            repo_id="google/flan-t5-xxl",
+            repo_id=repo_id,
             metadata={"name": "question_generator"},
             model_kwargs=model_kwargs,
         )
         streaming_llm = HuggingFaceHub(
-            repo_id="google/flan-t5-xxl",
+            repo_id=repo_id,
             metadata={"name": "answer_generator"},
             model_kwargs=model_kwargs
             | {
@@ -84,14 +85,13 @@ def get_conversation_chain(vectorstore, llm_model=None):
             },
         )
     question_generator = LLMChain(
-        llm=llm, prompt=CONDENSE_QUESTION_PROMPT, tags=["rephrased_question"]
+        llm=llm, prompt=CONDENSE_QUESTION_PROMPT,
     )
     # Streaming doc chain to combine the reponses
     doc_chain = load_qa_chain(
         streaming_llm,
         chain_type="stuff",
         prompt=QA_PROMPT,
-        tags=["generated_answer"],
     )
 
     # Memory to store the chat history
