@@ -8,7 +8,6 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.llms import HuggingFaceHub
 from langchain.chains.llm import LLMChain
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains.question_answering import load_qa_chain
 from langchain.chains.conversational_retrieval.prompts import (
     CONDENSE_QUESTION_PROMPT,
@@ -16,9 +15,6 @@ from langchain.chains.conversational_retrieval.prompts import (
 )
 from langchain.schema import LLMResult
 from langchain.callbacks.base import BaseCallbackHandler
-from langchain.callbacks.streaming_stdout_final_only import (
-    FinalStreamingStdOutCallbackHandler,
-)
 
 
 def get_pdf_text(pdf_docs):
