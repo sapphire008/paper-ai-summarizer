@@ -1,3 +1,3 @@
 # Research Butler
 
-![](./assets/showcase.mp4)
+![Usage.](./assets/showcase.gif)
