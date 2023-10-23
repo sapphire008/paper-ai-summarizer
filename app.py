@@ -1,11 +1,18 @@
 import streamlit as st
+from dynaconf import Dynaconf
 from chat import initialize_conversation
 
+def load_settings(settings_file="settings.yaml"):
+    settings = Dynaconf(
+        settings_file=settings_file,
+        environments=True,
+    )
+    return settings
 
-st.title("Research Assistant")
+def main(settings={}):
+    # Set title
+    st.title(settings.get("APP_TITLE", "Research Assistant"))
 
-
-def main():
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -28,7 +35,7 @@ def main():
         if st.button("Process"):
             # Start the conversation only when documents are uploaded
             with st.spinner("Processing"):
-                st.session_state.conversation = initialize_conversation(pdf_docs)
+                st.session_state.conversation = initialize_conversation(pdf_docs, settings)
 
     # React to user input
     if prompt := st.chat_input("What is up?"):
@@ -48,4 +55,5 @@ def main():
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__ == '__main__':
-    main()
+    settings = load_settings()
+    main(settings)

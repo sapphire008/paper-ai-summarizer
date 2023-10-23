@@ -1,5 +1,4 @@
-from dotenv import load_dotenv
-from PyPDF2 import PdfReader
+"""Initialize the chatbot backend."""
 import fitz  # imports the pymupdf library
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
@@ -27,16 +26,29 @@ def get_text_chunks(text):
     return chunks
 
 
-def get_vectorstore(text_chunks):
-    embeddings = OpenAIEmbeddings()
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+def get_vectorstore(text_chunks, embedding_model=None):
+    if embedding_model is None:
+        embeddings = OpenAIEmbeddings()
+    elif embedding_model.startswith("huggingface"):
+        embeddings = HuggingFaceInstructEmbeddings(
+            model_name=embedding_model.replace("huggingface:", "")
+            or "hkunlp/instructor-xl"
+        )
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
 
-def get_conversation_chain(vectorstore):
-    llm = ChatOpenAI()
-    # llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
+def get_conversation_chain(vectorstore, llm_model=None):
+    if llm_model is None:
+        # gpt-3.5-turbo by default
+        llm = ChatOpenAI()
+    elif llm_model.startswith("openai:"):
+        llm = ChatOpenAI(llm_model.replace("openai:", ""))
+    elif llm_model.startswith("huggingface:"):
+        llm = HuggingFaceHub(
+            repo_id="google/flan-t5-xxl",
+            model_kwargs={"temperature": 0.5, "max_length": 512},
+        )
 
     memory = ConversationBufferMemory(
         memory_key="chat_history", return_messages=True
@@ -46,7 +58,8 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
-def initialize_conversation(pdf_docs):
+
+def initialize_conversation(pdf_docs, settings={}):
     # get pdf text
     raw_text = get_pdf_text(pdf_docs)
 
@@ -54,7 +67,11 @@ def initialize_conversation(pdf_docs):
     text_chunks = get_text_chunks(raw_text)
 
     # create vector store
-    vectorstore = get_vectorstore(text_chunks)
+    vectorstore = get_vectorstore(
+        text_chunks, embedding_model=settings.get("EMBEDDING_MODEL")
+    )
 
     # create conversation chain
-    return get_conversation_chain(vectorstore)
+    return get_conversation_chain(
+        vectorstore, llm_model=settings.get("LLM_MODEL")
+    )

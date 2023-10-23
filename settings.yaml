@@ -1,0 +1,5 @@
+# Settings for the chatbot service
+default:
+  APP_TITLE: "Research Butler"
+  LLM_MODEL: "openai:gpt-3.5-turbo"
+  EMBEDDING_MODEL: "openai"
