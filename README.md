@@ -1,3 +1,3 @@
 # Research Butler
 
-![](./assets/showcase.webm)
+![](./assets/showcase.mp4)
