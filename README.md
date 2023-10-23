@@ -1,3 +1,3 @@
-Research Butler
+# Research Butler
 
 ![](./assets/showcase.webm)
